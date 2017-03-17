@@ -1,0 +1,72 @@
+---
+title: "Final Project PML"
+author: "Arturo Estrada"
+date: "17 de marzo de 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways.
+
+
+##Instructions
+One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. The goal of this project is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+##Data
+```{r}
+train <- read.csv("C:/Users/Arturo/Documents/Data Science Specialization/Machine Learning/pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+test <- read.csv("C:/Users/Arturo/Documents/Data Science Specialization/Machine Learning/pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+```
+
+##Cleaning Data
+
+```{r}
+##Delete columns with more than 60% of NAs
+train <- train[ ,colSums(is.na(train)) <= 0.6*nrow(train)]
+test <- test[ ,colSums(is.na(test)) <= 0.6*nrow(test)]
+
+##Delete columns not relevant as covariates
+train <- train[ ,-c(1:7)];test <- test[ ,-c(1:7)]
+dim(train)
+```
+
+##Spliting Training Data Set
+As Training data set is large,  cross-validation will be carried out by splitting the original training set into 2 subsets (i.e. randomly without replacement). First Set (60%) and second set (40%). 
+
+```{r}
+library(caret)
+In_train_s1 <- createDataPartition(train$classe, p = 0.6, list = F)
+train_s1 <- train[In_train_s1, ]; train_s2 <- train[-In_train_s1, ]
+dim(train_s1); dim(train_s2)
+```
+
+##Fitting Models
+
+First, a CART model is fitted
+```{r}
+library(rattle)
+library(rpart)
+mod1 <- rpart(classe ~., method = "class", data = train_s1)
+fancyRpartPlot(mod1)
+Mod1_pred <- predict(mod1, train_s2, type = "class")
+confusionMatrix(train_s2$classe, Mod1_pred)
+```
+
+A random Forest Model is fitted.
+```{r}
+library(randomForest)
+mod2 <- randomForest(classe ~., data = train_s1)
+Mod2_pred <- predict(mod2, train_s2)
+plot(mod2)
+confusionMatrix(Mod2_pred, train_s2$classe)
+```
+
+##Prediction on Test Data
+Random Forests gave an Accuracy in the test_s2 dataset of 99.34%, which was more accurate than CART model. The expected out-of-sample error is 100-99.34 = 0.66%.
+```{r}
+pred_Test <- predict(mod2, test)
+pred_Test
+```
